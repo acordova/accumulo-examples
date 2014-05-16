@@ -1,9 +1,6 @@
 package org.apache.accumulo.examples;
 
 import com.google.common.base.Function;
-import com.google.common.io.Files;
-
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -16,11 +13,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.util.shell.Shell;
 
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -172,10 +166,10 @@ public class TwitterIngestApp {
 		
 		app.startTwitterStream(
 				client,
-				"16905891-JqlYGc28xQJz2qllA52j2oWI0QOqI4FIbq4vaJG8Y",
-				"uMD8R3J78RdzrrTkAx6AcHsNQJ6u877ejZeCdDw",
-				"ZErE2u2aeXhQZ0zOWo2L2Q",
-				"0WTiOVkSKt9t65gep6haFsfKl65iwkvodyo0W2wdA"); 
+				"token",
+				"tokenSecret",
+				"consumerKey",
+				"consumerSecret"); 
 		
 		Thread.sleep(10000);
 		System.out.println("stopping ...");
