@@ -1,6 +1,5 @@
-package org.apache.accumulo.examples;
+package org.apache.accumulo.examples.twitter;
 
-import com.google.common.base.Function;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -13,20 +12,19 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.examples.index.IndexingClient;
+import org.apache.accumulo.examples.util.MiniAccumulo;
+import org.apache.accumulo.examples.schema.SchemaIngestClient;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import twitter4j.HashtagEntity;
 import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
-import twitter4j.User;
-import twitter4j.UserMentionEntity;
 import twitter4j.auth.AccessToken;
 
 public class TwitterIngestApp {
@@ -42,36 +40,44 @@ public class TwitterIngestApp {
 	 * From http://twitter4j.org/en/code-examples.html
 	 */
 	void startTwitterStream(
-			final IngestClient<Status> client,
+			final SchemaIngestClient<Status> client,
+			final IndexingClient<Status> indexingClient,
 			final String token,
 			final String tokenSecret,
 			final String consumerKey,
 			final String consumerSecret) {
 		
 		StatusListener listener = new StatusListener() {
+			@Override
 			public void onStatus(Status status) {
 				try {
 					System.out.print(".");
 					client.ingest(status);
-
+					indexingClient.index(status);
+					
 				} catch (MutationsRejectedException ex) {
 					Logger.getLogger(TwitterIngestApp.class.getName()).log(Level.ERROR, null, ex);
 				}
 			}
 
+			@Override
 			public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
 			}
 
+			@Override
 			public void onTrackLimitationNotice(int numberOfLimitedStatuses) {
 			}
 
+			@Override
 			public void onException(Exception ex) {
 				ex.printStackTrace();
 			}
 
+			@Override
 			public void onScrubGeo(long l, long l1) {
 			}
 
+			@Override
 			public void onStallWarning(StallWarning sw) {
 			}
 		};
@@ -91,61 +97,13 @@ public class TwitterIngestApp {
 		twitterStream.shutdown();
 	}
 
-	/**
-	 * Define how we're going to store twitter data
-	 *
-	 * This table stores user information along with a list of their tweets
-	 * within one row.
-	 *
-	 * The user information gets updated with each tweet.
-	 */
-	private static class StatusToMutation implements Function<Status, Mutation> {
-
-		public Mutation apply(Status status) {
-
-			Mutation m = new Mutation(status.getUser().getScreenName());
-
-			String idString = Long.toHexString(status.getId());
-
-			// update user info
-			User user = status.getUser();
-			if(user != null) {
-				m.put("user", "description", user.getDescription() == null ? "" : user.getDescription());
-				m.put("user", "followers", Long.toString(user.getFollowersCount()));
-				m.put("user", "location", user.getLocation() == null ? "" : user.getLocation());
-				m.put("user", "name", user.getName() == null ? "" : user.getName());
-				m.put("user", "statusesCount", Long.toString(user.getStatusesCount()));
-			}
-			
-			// write tweet info
-			m.put("tweetContent", idString + "\ttext", status.getText());
-
-			m.put("tweetDetails", idString + "\tsource", status.getSource());
-			m.put("tweetDetails", idString + "\tfavoriteCount", Long.toString(status.getFavoriteCount()));
-			m.put("tweetDetails", idString + "\tlang", status.getLang());
-
-			// write entity info
-			UserMentionEntity[] musers = status.getUserMentionEntities();
-			for (UserMentionEntity muser : musers) {
-				m.put("tweetEntities", idString + "\tuser\t" + muser.getScreenName(), "");
-			}
-
-			HashtagEntity[] hashtags = status.getHashtagEntities();
-			for (HashtagEntity hashtag : hashtags) {
-				m.put("tweetEntities", idString + "\thashtags\t" + hashtag.getText(), "");
-			}
-
-			return m;
-		}
-	}
 
 	public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, IOException, InterruptedException, TableNotFoundException, TableExistsException {
 
 		Logger.getRootLogger().setLevel(Level.WARN);
 		
-		
 		System.out.println("connecting ...");
-		ZooKeeperInstance instance = new ZooKeeperInstance("miniInstance", MiniAccumulo.HOST);
+		ZooKeeperInstance instance = new ZooKeeperInstance("miniInstance", MiniAccumulo.getZooHost());
 		Connector conn = instance.getConnector("root", new PasswordToken("password"));
 		
 		BatchWriterConfig config = new BatchWriterConfig();
@@ -154,27 +112,33 @@ public class TwitterIngestApp {
 		config.setMaxMemory(1000000);
 		config.setTimeout(1, TimeUnit.MINUTES);
 		
-		// create the table
+		// create the tables
 		if (!conn.tableOperations().exists("twitter"))
 			conn.tableOperations().create("twitter");
 		
+		if (!conn.tableOperations().exists("twitterIndex"))
+			conn.tableOperations().create("twitterIndex");
 		
-		IngestClient client = new IngestClient<Status>(conn, "twitter", new StatusToMutation());
+		SchemaIngestClient<Status> client = new SchemaIngestClient<>(conn, "twitter", TweetSchema.getInstance().getIngestSchema());
 		client.open(config);
+
+		IndexingClient<Status> indexingClient = new IndexingClient<>(conn, "twitterIndex", new TweetIndexer());
+		indexingClient.open(config);
 		
 		TwitterIngestApp app = new TwitterIngestApp();
 		
 		app.startTwitterStream(
 				client,
-				"token",
-				"tokenSecret",
-				"consumerKey",
-				"consumerSecret"); 
+				indexingClient,
+				"accessToken",
+				"accessTokenSecret",
+				"APIKey",
+				"APISecret"); 
 		
 		Thread.sleep(10000);
 		System.out.println("stopping ...");
 		app.stopTwitterStream();
 		client.close();
-		
+		indexingClient.close();
 	}
 }

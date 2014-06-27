@@ -1,6 +1,6 @@
-package org.apache.accumulo.examples;
+package org.apache.accumulo.examples.index;
 
-import com.google.common.base.Function;
+import java.util.List;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -8,22 +8,20 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 
-
-public class IngestClient<T> {
+public class IndexingClient<T> {
 	
-	private final String table;
+	private final Indexer<T> indexedFields;
 	private final Connector conn;
-	private final Function<T, Mutation> schema;
+	private final String table;
 	private boolean open = false;
 	private BatchWriter writer;
 	
-	public IngestClient(
-			final Connector conn, 
+	public IndexingClient(final Connector conn, 
 			final String table, 
-			final Function<T, Mutation> schema) {
+			final Indexer<T> indexedFields) {
 		this.conn = conn;
 		this.table = table;
-		this.schema = schema;
+		this.indexedFields = indexedFields;
 	}
 	
 	public void open(final BatchWriterConfig config) throws TableNotFoundException {
@@ -33,12 +31,12 @@ public class IngestClient<T> {
 		}
 	}
 	
-	public void ingest(final T object) throws MutationsRejectedException {
+	public void index(final T object) throws MutationsRejectedException {
 		if(!open) 
 			throw new IllegalStateException("must open() ingest client before calling ingest()");
 		
-		Mutation m = schema.apply(object);
-		writer.addMutation(m);
+		List<Mutation> indexEntries = indexedFields.apply(object);
+		writer.addMutations(indexEntries);
 	}
 	
 	public void flush() throws MutationsRejectedException {

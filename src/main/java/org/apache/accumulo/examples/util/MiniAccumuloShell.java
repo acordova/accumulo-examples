@@ -1,18 +1,10 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-package org.apache.accumulo.examples;
+package org.apache.accumulo.examples.util;
 
 import java.io.IOException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-/**
- *
- * @author aaron
- */
 public class MiniAccumuloShell {
 	
 	public static void main(String[] args) throws IOException {
@@ -21,7 +13,7 @@ public class MiniAccumuloShell {
 		
 		// start a shell to explore the data
 		String[] shellArgs = new String[] {"-u", "root", "-p", "password", "-z", 
-			"miniInstance", MiniAccumulo.HOST};
+			"miniInstance", MiniAccumulo.getZooHost()};
 
 		Shell.main(shellArgs);
 	}
