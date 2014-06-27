@@ -10,7 +10,7 @@ The examples here make use of the Accumulo Mini Cluster, which runs client code 
 - [Using the Shell](#shell)
 - [SimpleReadClient.java](#simpleread)
 - [Twitter Ingest](#twitteringest)
-- [Twitter Query](#twitteringest)
+- [Twitter Query](#twitterquery)
 
 ## <a name="running"></a> Running the MiniAccumulo cluster
 
@@ -332,7 +332,7 @@ Where *recordID* is stored as the row of our primary table. This allows users to
 This class also defines what our recordID will be for each TwitterUser object we store.
 
 
-## <a name="twitterquery"></a> TwitterQuery.java
+## <a name="twitterquery"></a> TwitterQueryApp.java
 The TwitterQuery class demonstrates how a client might use a secondary index table in conjunction with a record table to satisfy a wider range of user queries.
 
 In here, we create a *SchemaQueryClient* and configure it to query using our primary table, secondary index table, and query schema this:
