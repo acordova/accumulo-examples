@@ -45,7 +45,7 @@ public class SchemaQueryClient<T> {
 		this.schema = schema;
 	}
 	
-	public Optional<String> singleValueObjectLookup(
+	public Optional<String> singleValueLookup(
 			final String row, 
 			final String family,
 			final String qualifier,
@@ -128,7 +128,7 @@ public class SchemaQueryClient<T> {
 			final String field,
 			final String[] authorizations) throws TableNotFoundException {
 		
-		Range range = Range.exact(term);
+		Range range = Range.exact(term, field);
 		Authorizations auths = new Authorizations(authorizations);
 		
 		// first lookup record IDs

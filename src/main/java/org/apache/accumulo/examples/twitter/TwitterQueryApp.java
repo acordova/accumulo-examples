@@ -24,18 +24,21 @@ public class TwitterQueryApp {
 		System.out.println("connecting ...");
 		ZooKeeperInstance instance = new ZooKeeperInstance("miniInstance", MiniAccumulo.getZooHost());
 		Connector conn = instance.getConnector("root", new PasswordToken("password"));
+		String[] auths = new String[0]; // no authorizations needed
 		
 		SchemaQueryClient<TwitterUser> client = new SchemaQueryClient<>(conn, "twitter", "twitterIndex", TwitterUserQuerySchema.getInstance());
 		
 		// lookup all users with usernames beginning with 'a'
-		Iterable<TwitterUser> results = client.wildcardObjectLookup("a", new String[0]);
+		System.out.println("===== usernames beginning with 'jo' =====");
+		Iterable<TwitterUser> results = client.wildcardObjectLookup("jo", auths);
 		
 		for(TwitterUser user : results) {
-			System.out.println(user);
+			System.out.println(user.name);
 		}
 		
 		// index lookup for tweets containing a word
-		results = client.indexLookup("data", "", new String[0]);
+		System.out.println("===== tweets containing the word 'today' in 'text' field =====");
+		results = client.indexLookup("today", "text", auths);
 		for(TwitterUser user : results) {
 			System.out.println(user);
 		}

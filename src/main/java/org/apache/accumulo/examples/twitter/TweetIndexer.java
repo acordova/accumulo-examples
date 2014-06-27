@@ -25,21 +25,21 @@ public class TweetIndexer extends Indexer<Status> {
 
 		for(String word : tokenize(status.getUser().getDescription())) {
 			Mutation m = new Mutation(word);
-			m.put("", rid, "");
+			m.put("description", rid, "");
 			indexEntries.add(m);
 		}
 		
 		Mutation lang = new Mutation(status.getUser().getLang());
-		lang.put("", rid, "");
+		lang.put("lang", rid, "");
 		indexEntries.add(lang);
 		
 		Mutation location = new Mutation(status.getUser().getLocation());
-		location.put("", rid, "");
+		location.put("location", rid, "");
 		indexEntries.add(location);
 		
 		for(String word : tokenize(status.getText())) {
 			Mutation m = new Mutation(word);
-			m.put("", rid, "");
+			m.put("text", rid, "");
 			indexEntries.add(m);
 		}
 		
